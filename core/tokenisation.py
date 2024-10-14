@@ -25,8 +25,14 @@ class Tokeniser:
         token_all = self._tokenise(text)
         token_set = set(token_all)
         token_set = sorted(token_set)
+        token_set = self._add_special_tokens(token_set)
         vocabulary = {token:token_id for token_id, token in enumerate(token_set)}
         return vocabulary
+    # }}}
+
+    # {{{ _construct_vocabulary_inverse
+    def _construct_vocabulary_inverse(self) -> dict[int,str]:
+        return {token_id:token for token, token_id in self._vocabulary.items()}
     # }}}
 
     # {{{ _tokenise
@@ -36,14 +42,20 @@ class Tokeniser:
         return token_all
     # }}}
 
-    # {{{ _construct_vocabulary_inverse
-    def _construct_vocabulary_inverse(self) -> dict[int,str]:
-        return {token_id:token for token, token_id in self._vocabulary.items()}
+    # {{{ _add_special_tokens
+    def _add_special_tokens(self, token_set: set[str]) -> set[str]:
+        token_special_all = ('<|endoftext|>', '<|unknown|>')
+        token_set.extend(token_special_all)
+        return token_set
     # }}}
 
     # {{{ encode
     def encode(self, text: str) -> tuple[int,...]:
         token_all = self._tokenise(text)
+        token_all = tuple(
+            token if token in self._vocabulary else '<|unknown|>'
+            for token in token_all
+        )
         token_id_all = tuple(self._vocabulary[token] for token in token_all)
         return token_id_all
     # }}}
@@ -53,22 +65,7 @@ class Tokeniser:
         token_all = tuple(
             self._vocabulary_inverse[token_id] for token_id in token_id_all)
         text = ' '.join(token_all)
-        text = re.sub(r'\s+([,.?!"()\'])', r'\1', text)
+        text = re.sub(r'\s+([,.:;?!"()\'])', r'\1', text)
         return text
     # }}}
-# }}}
-
-# {{{ tokenise
-def tokenise(text: str, delimiter = DELIMITER) -> tuple[str,...]:
-    token_all = re.split(delimiter, text)
-    token_all = tuple(token.strip() for token in token_all if token.strip())
-    return token_all
-# }}}
-
-# {{{ vocabularise
-def vocabularise(token_all: abc.Sequence) -> dict[str,int]:
-    token_set = set(token_all)
-    token_set = sorted(token_set)
-    vocabulary = {token:token_id for token_id, token in enumerate(token_set)}
-    return vocabulary
 # }}}
